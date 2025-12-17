@@ -1,0 +1,31 @@
+*~
+\#*
+
+# Python compile stuff
+__pycache__
+*.pyc
+*.egg-info
+
+# pytest caching and coverage
+.pytest_cache
+.coverage
+
+# Ignore the macOS turds
+.DS_Store
+
+# Ignore any misplaced virtual environments
+.venv
+venv
+dev_venv
+
+# Exclude all of the JetBrains .idea directory
+.idea
+
+# Ignore artifacts produced during build/packaging
+MANIFEST
+build
+dist
+
+# Ignore packaging locks
+uv.lock
+poetry.lock
