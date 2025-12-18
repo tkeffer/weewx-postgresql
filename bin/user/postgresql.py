@@ -5,6 +5,8 @@
 #
 """weedb driver for the PostgreSQL database"""
 
+import re
+
 # Require psycopg (v3)
 import psycopg
 from psycopg import DatabaseError as PGDatabaseError
@@ -21,6 +23,7 @@ _exception_map = {
     '42501': weedb.PermissionError,       # insufficient_privilege
     '28P01': weedb.BadPasswordError,      # invalid_password
     '42P01': weedb.NoTableError,          # undefined_table
+    '42P07': weedb.TableExistsError,      # table already exists
     '42703': weedb.NoColumnError,         # undefined_column
     '23505': weedb.IntegrityError,        # unique_violation
     '08001': weedb.CannotConnectError,    # sqlclient_unable_to_establish_sqlconnection
@@ -36,14 +39,24 @@ def _pg_guard(fn):
     def guarded_fn(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except PGDatabaseError as e:  # type: ignore
-            # Extract SQLSTATE code if available
+        except PGDatabaseError as e:
+            # Look for a specific SQLSTATE code. If not found, then try to
+            # decipher from the error message
             sqlstate = getattr(e, 'sqlstate', None)
-            if not sqlstate:
-                sqlstate = getattr(e, 'pgcode', None)
-            klass = _exception_map.get(sqlstate, weedb.DatabaseError)
+            if sqlstate:
+                klass = _exception_map.get(sqlstate, weedb.DatabaseError)
+            elif "failed to resolve host" in str(e):
+                klass = weedb.CannotConnectError
+            elif "password authentication failed" in str(e):
+                klass = weedb.BadPasswordError
+            # Pattern for a non-existent database
+            elif re.search(r'database "[^"]*" does not exist', str(e)):
+                klass = weedb.NoDatabaseError
+            else:
+                # Default to DatabaseError
+                klass = weedb.DatabaseError
             raise klass(e)
-        except PGInterfaceError as e:  # type: ignore
+        except PGInterfaceError as e:
             raise weedb.DisconnectError(e)
 
     return guarded_fn
