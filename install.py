@@ -20,7 +20,7 @@ CONFIG = """
         host = localhost
         # The user name for logging in to the host.
         user = weewx
-        # Use quotes around the password to guard against parsing errors.
+        # If necessary, use quotes around the password to guard against parsing errors.
         password = weewx
 """
 

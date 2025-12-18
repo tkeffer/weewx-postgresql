@@ -3,14 +3,22 @@
 #
 #    See the file LICENSE.txt for your full rights.
 #
-"""Test the weedb exception hierarchy for PostgreSQL."""
+"""Test the weedb exception hierarchy for PostgreSQL.
+
+Users weewx1 and weewx2 should be created in the PostgreSQL database with passwords
+"weewx1" and "weewx2", respectively. The script "setup_psql.sh" will set them up
+with the necessary permissions.
+
+If the PostgreSQL server is on a remote host, the environmental variable PGHOST
+should be set to the host name. Otherwise, the host name is assumed to be "localhost".
+"""
 import unittest
 import weedb
 
 psql1_dict = {'host': None, 'database_name': 'test_weewx1', 'user': 'weewx1', 'password': 'weewx1', 'driver': 'user.postgresql'}
 psql2_dict = {'host': None, 'database_name': 'test_weewx1', 'user': 'weewx2', 'password': 'weewx2', 'driver': 'user.postgresql'}
 
-class Common(unittest.TestCase):
+class Tester(unittest.TestCase):
 
     def setUp(self):
         """Drop the old databases, in preparation for running a test."""
