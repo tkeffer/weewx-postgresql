@@ -198,10 +198,15 @@ class Connection(weedb.Connection):
 
     @_pg_guard
     def columnsOf(self, table):
-        column_list = [row[1] for row in self.genSchemaOf(table)]
-        if not column_list:
-            # Mirror sqlite behavior
-            raise weedb.ProgrammingError("No such table %s" % table)
+        column_list = []
+        with self.connection.cursor() as cur:
+            for column_name in cur.execute("SELECT column_name FROM %s_column__metadata;" % table):
+                column_list.append(column_name[0])
+
+        # column_list = [row[1] for row in self.genSchemaOf(table)]
+        # if not column_list:
+        #     # Mirror sqlite behavior
+        #     raise weedb.ProgrammingError("No such table %s" % table)
         return column_list
 
     @_pg_guard
@@ -243,12 +248,11 @@ class Cursor(weedb.Cursor):
 
     @_pg_guard
     def __init__(self, connection):
-        self._conn = connection
         self._cursor = connection.connection.cursor()
 
     @_pg_guard
     def execute(self, sql_string, sql_tuple=()):
-        # PostgreSQL uses %s placeholders; replace '?' with '%s'
+        # PostgreSQL uses %s placeholders: replace '?' with '%s'.
         pg_string = sql_string.replace('?', '%s')
         self._cursor.execute(pg_string, tuple(sql_tuple))
         return self
@@ -263,6 +267,27 @@ class Cursor(weedb.Cursor):
     def drop_columns(self, table, column_names):
         for column_name in column_names:
             self.execute("ALTER TABLE %s DROP COLUMN IF EXISTS %s;" % (table, column_name))
+
+    def create_table(self, table_name, schema):
+        """Create a new table with the specified schema.
+
+        This version explicitly stores the original column names in a separate metadata table.
+
+        table_name: The name of the table to be created.
+        schema: The schema of the table in the form of a list of tuples:
+                [(column_name, column_type), ...]
+        """
+        # Have my superclass create the table
+        super().create_table(table_name, schema)
+
+        # Drop the existing metadata table if it exists.
+        self.execute("DROP TABLE IF EXISTS %s_column__metadata;" % table_name)
+        # Create the new metadata table
+        self.execute("CREATE TABLE %s_column__metadata (column_name TEXT)" % table_name)
+        # Insert the new metadata
+        for col_name, _ in schema:
+            self.execute(f"INSERT INTO {table_name}_column__metadata (column_name) VALUES (?);",
+                         (col_name,))
 
     def close(self):
         try:
