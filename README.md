@@ -40,7 +40,7 @@ pip install psycopg
 Now install the extension itself:
 
 ```shell
-weectl extension install weewx-postgresql.zip
+weectl extension install https://github.com/tkeffer/weewx-postgresql/archive/refs/heads/master.zip
 ```
 
 ### Tell WeeWX to use PostgreSQL
