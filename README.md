@@ -4,7 +4,11 @@ helpers.
 
 ## Requirements
 - Python 3.7 or later.
-- WeeWX 5.3 or later.
+- WeeWX 5.3 or later. Note that as of 12/24/2025, this version has not been
+  released yet, so you will have to run out of the branch `development` in the
+  WeeWX repository. See the WeeWX documentation on
+  [running from a git repository](https://www.weewx.com/docs/5.2/quickstarts/git/#install-pre-requisites)
+  for more information.
 - PostgreSQL to which you have admin privileges. Tested on PostgreSQL v16.
 - `psycopg` v3. This is the client library for PostgreSQL.
 
