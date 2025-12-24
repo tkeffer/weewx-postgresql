@@ -21,7 +21,7 @@ CONFIG = """
 [DatabaseTypes]
     
     # Defaults for PostgreSQL databases
-    [[PostgreSQL]]]]
+    [[PostgreSQL]]]
         driver = user.postgresql
         # The host where the database is located.
         host = localhost
