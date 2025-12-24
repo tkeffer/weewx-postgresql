@@ -222,7 +222,7 @@ class Connection(weedb.Connection):
 
     group_defs = {
 #        'day': "GROUP BY date_trunc('day', to_timestamp(dateTime)) ",
-        'day': "GROUP BY TRUNCATE((EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(dateTime))) "
+        'day': "GROUP BY FLOOR((EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(dateTime))) "
                "- EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(%(sod)s)))) "
                "/ (%(agg_days)s * 86400)) ",
         'month': "GROUP BY to_char(to_timestamp(dateTime), 'YYYY-MM') ",
