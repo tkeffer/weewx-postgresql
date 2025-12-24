@@ -47,9 +47,14 @@ Now install the extension itself:
 weectl extension install https://github.com/tkeffer/weewx-postgresql/archive/refs/heads/master.zip
 ```
 
+### Check settings in weewx.conf
+
+Take a look at your `weewx.conf` file. In particular, sections `[Databases]` and
+`[DataTypes]`. Make sure they reflect the choices you made above.
+
 ### Tell WeeWX to use PostgreSQL
 
-The previous step added the capability to use the PostgreSQL driver.
+The previous steps added the capability to use the PostgreSQL driver.
 Now you must tell WeeWX to actually use it. Look inside your `weewx.conf` for
 the `[DataBindings]` section, then the `[[wx_binding]]` subsection. Edit the 
 `database` option to `archive_postgresql`. When you're done, the section should
@@ -66,4 +71,3 @@ look something like this:
         database = archive_postgresql
         ...
 ```
-
