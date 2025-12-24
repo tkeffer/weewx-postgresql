@@ -11,6 +11,13 @@ import configobj
 from weecfg.extension import ExtensionInstaller
 
 CONFIG = """
+[Databases]
+
+     # PostgreSQL database
+     [[archive_postgresql]]
+        database_name = weewx_data
+        database_type = PostgreSQL
+
 [DatabaseTypes]
     
     # Defaults for PostgreSQL databases
