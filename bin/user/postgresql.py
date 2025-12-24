@@ -220,6 +220,21 @@ class Connection(weedb.Connection):
             row = cur.fetchone()
             return None if row is None else (var_name, row[0])
 
+    group_defs = {
+#        'day': "GROUP BY date_trunc('day', to_timestamp(dateTime)) ",
+        'day': "GROUP BY TRUNCATE((EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(dateTime))) "
+               "- EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(%(sod)s)))) "
+               "/ (%(agg_days)s * 86400)) ",
+        'month': "GROUP BY to_char(to_timestamp(dateTime), 'YYYY-MM') ",
+        'year': "GROUP BY to_char(to_timestamp(dateTime), 'YYYY') ",
+    }
+
+    @staticmethod
+    def get_group_by(group_name):
+        """Return a GROUP BY clause suitable for PostgreSQL."""
+        # Fail hard if we're given a bad group name:
+        return Connection.group_defs[group_name]
+
     @_pg_guard
     def begin(self):
         try:
