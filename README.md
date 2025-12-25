@@ -16,17 +16,20 @@ helpers.
 
 ### Set up the PostgreSQL database
 
-Using `psql`, create a user for WeeWX. The username and
-password can be whatever you like. Here, we'll use `weewx` for both.
+Using `psql`, create a user for WeeWX. The username and password can be whatever
+you like. You will also need to give permission for the user to create
+databases. 
 
-You will also need to create a database for WeeWX to use. Here we name it
-`weewx_data`. Its owner should be the user you created. Here's how you
-would do it with `psql`:
+In this example, we login using the client tool `psql`, then create a user named
+`weewx` with the password `weewx`. We then allow the user to create databases.
+
 
 ```shell
-psql -h localhost - U postgres -d postgres
+# This is how you typically log in as the superuser postgres. Details may differ
+# on your system.
+sudo -u postgres psql
 CREATE USER weewx WITH PASSWORD 'weewx';
-CREATE DATABASE weewx_data OWNER weewx;
+ALTER USER weewx CREATEDB;
 ```
 
 ### Prerequisites
