@@ -11,10 +11,14 @@ import re
 import psycopg
 from psycopg import DatabaseError as PGDatabaseError
 from psycopg import InterfaceError as PGInterfaceError
+from psycopg.types.numeric import FloatLoader
 
 import weedb
 from weeutil.weeutil import to_bool
 
+# This tells psycopg3 to return float instead of decimal.Decimal.
+# OID 1700 is the standard internal ID for NUMERIC in PostgreSQL
+psycopg.adapters.register_loader(1700, FloatLoader)
 
 # Map SQLSTATE error codes to weedb exceptions
 _exception_map = {
@@ -92,7 +96,7 @@ def create(host='localhost', user='', password='', database_name='',
     conn.autocommit = True
     try:
         with conn.cursor() as cur:
-            cur.execute("CREATE DATABASE %s" % database_name)
+            cur.execute(f"CREATE DATABASE {database_name};")
     finally:
         conn.close()
 
@@ -133,7 +137,7 @@ class Connection(weedb.Connection):
                 """
                 SELECT tablename
                 FROM pg_catalog.pg_tables
-                WHERE schemaname NOT IN ('pg_catalog','information_schema');
+                WHERE schemaname NOT IN ('pg_catalog', 'information_schema');
                 """
             )
             while True:
@@ -156,9 +160,11 @@ class Connection(weedb.Connection):
                 """
                 SELECT a.attname
                 FROM pg_index i
-                JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-                JOIN pg_class c ON c.oid = i.indrelid
-                WHERE i.indisprimary = TRUE AND c.relname = %s;
+                         JOIN pg_attribute a
+                              ON a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey)
+                         JOIN pg_class c ON c.oid = i.indrelid
+                WHERE i.indisprimary = TRUE
+                  AND c.relname = %s;
                 """,
                 (table,)
             )
