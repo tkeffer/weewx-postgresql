@@ -87,33 +87,31 @@ def connect(host='localhost', user='', password='', database_name='',
 
 @_pg_guard
 def create(host='localhost', user='', password='', database_name='',
-           driver='', port=5432, autocommit=True, **kwargs):
+           driver='', port=5432, **kwargs):
     """Create the specified database. If it already exists, raise DatabaseExistsError."""
-    # Connect to the maintenance DB (postgres) to run CREATE DATABASE
+
+    # Open up a connection to the "maintenance" database (usually 'postgres'), then create the
+    # new database:
     maint_db = kwargs.get('maintenance_db', 'postgres')
-    conn = psycopg.connect(host=host or None, user=user or None, password=password or None,
-                           dbname=maint_db, port=int(port) if port else None)
-    conn.autocommit = True
-    try:
-        with conn.cursor() as cur:
-            cur.execute(f"CREATE DATABASE {database_name};")
-    finally:
-        conn.close()
+    with psycopg.connect(host=host or None, user=user or None, password=password or None,
+                         dbname=maint_db or None, port=int(port) if port else None) as conn:
+        conn.autocommit = True
+        conn.execute(f"CREATE DATABASE {database_name};")
+    # Now connect to the new database and create the metadata table:
+    with psycopg.connect(host=host or None, user=user or None, password=password or None,
+                         dbname=database_name) as conn:
+        conn.execute(f"CREATE TABLE weewx_db__metadata (table_name TEXT, column_name TEXT);")
 
 
 @_pg_guard
 def drop(host='localhost', user='', password='', database_name='',
-         driver='', port=5432, autocommit=True, **kwargs):
+         driver='', port=5432, **kwargs):
     """Drop (delete) the specified database."""
     maint_db = kwargs.get('maintenance_db', 'postgres')
-    conn = psycopg.connect(host=host or None, user=user or None, password=password or None,
-                           dbname=maint_db, port=int(port) if port else None)
-    conn.autocommit = True
-    try:
-        with conn.cursor() as cur:
-            cur.execute("DROP DATABASE %s" % database_name)
-    finally:
-        conn.close()
+    with psycopg.connect(host=host or None, user=user or None, password=password or None,
+                         dbname=maint_db, port=int(port) if port else None) as conn:
+        conn.autocommit = True
+        conn.execute(f"DROP DATABASE {database_name}")
 
 
 class Connection(weedb.Connection):
@@ -131,6 +129,13 @@ class Connection(weedb.Connection):
     @_pg_guard
     def tables(self):
         """Returns a list of tables in the database (public and user schemas)."""
+        with self.connection.cursor() as cur:
+            results = cur.execute("SELECT DISTINCT table_name FROM weewx_db__metadata").fetchall()
+        return [row[0] for row in results]
+
+    def list_tables(self):
+        """This returns a list of the actual tables in the database. It does not use
+        metadata. An extension to the regular weedb API, in case it's useful."""
         table_list = []
         with self.connection.cursor() as cur:
             cur.execute(
@@ -204,15 +209,19 @@ class Connection(weedb.Connection):
 
     @_pg_guard
     def columnsOf(self, table):
+        """Return a list of column names for the given table. For PostgreSQL, the list is
+        actually retrieved from a separate metadata table. This insures that the column names
+        reflect the original mixed-case names."""
         column_list = []
         with self.connection.cursor() as cur:
-            for column_name in cur.execute("SELECT column_name FROM %s_column__metadata;" % table):
+            for column_name in cur.execute("SELECT column_name "
+                                           "FROM weewx_db__metadata "
+                                           "WHERE table_name = %s;", (table,)):
                 column_list.append(column_name[0])
+        # If the list is empty, that means the table doesn't exist. Raise an exception.
+        if not column_list:
+            raise weedb.NoTableError(f'Table {table} does not exist.')
 
-        # column_list = [row[1] for row in self.genSchemaOf(table)]
-        # if not column_list:
-        #     # Mirror sqlite behavior
-        #     raise weedb.ProgrammingError("No such table %s" % table)
         return column_list
 
     @_pg_guard
@@ -227,7 +236,7 @@ class Connection(weedb.Connection):
             return None if row is None else (var_name, row[0])
 
     group_defs = {
-#        'day': "GROUP BY date_trunc('day', to_timestamp(dateTime)) ",
+        #        'day': "GROUP BY date_trunc('day', to_timestamp(dateTime)) ",
         'day': "GROUP BY FLOOR((EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(dateTime))) "
                "- EXTRACT(EPOCH FROM date_trunc('day', to_timestamp(%(sod)s)))) "
                "/ (%(agg_days)s * 86400)) ",
@@ -301,14 +310,10 @@ class Cursor(weedb.Cursor):
         # Have my superclass create the table
         super().create_table(table_name, schema)
 
-        # Drop the existing metadata table if it exists.
-        self.execute("DROP TABLE IF EXISTS %s_column__metadata;" % table_name)
-        # Create the new metadata table
-        self.execute("CREATE TABLE %s_column__metadata (column_name TEXT)" % table_name)
-        # Insert the new metadata
+        # Now insert the original mixed-case table and column names into the metadata table
         for col_name, _ in schema:
-            self.execute(f"INSERT INTO {table_name}_column__metadata (column_name) VALUES (?);",
-                         (col_name,))
+            self.execute("INSERT INTO weewx_db__metadata (table_name, column_name) VALUES (?, ?);",
+                         (table_name, col_name))
 
     def close(self):
         try:

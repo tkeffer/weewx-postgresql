@@ -6,10 +6,10 @@
 # PostgreSQL databases (one schema: public). The roles are:
 
 # 1. Role: weewx   (password: weewx)
-# 2. Role: weewx1  (password: weewx1)
-# 3. Role: weewx2  (password: weewx2)
+# 2. Role: weewx_tester  (password: weewx_tester)
+# 3. Role: weewx_tester2  (password: weewx_tester2)
 
-# NB: role weewx2 is more restrictive than weewx1, which, in turn, is more restrictive than weewx.
+# NB: role weewx_tester2 is more restrictive than weewx_tester
 
 # Connection:
 # - Uses standard libpq environment variables: PGHOST, PGPORT, PGUSER, PGPASSWORD
@@ -21,29 +21,6 @@
 # Putting this together, a typical invocation looks like:
 #    PGHOST=192.168.1.13 PGUSER=admin PGDATABASE=postgres ./setup_psql.sh
 
-# Databases created:
-#   test
-#   test_alt_weewx
-#   test_scratch
-#   test_sim
-#   test_weedb
-#   test_weewx
-#   test_weewx1
-#   test_weewx2
-#   weewx
-
-# Grants mapping (per database):
-#   - weewx   : broad access to all listed databases
-#   - weewx1  : access to a subset (see below)
-#   - weewx2  : access only to test_weewx2
-
-# For each database granted to a role, we apply typical Postgres equivalents of
-# MySQL's table-level privileges:
-#   - GRANT CONNECT ON DATABASE <db>
-#   - In DB (schema public): GRANT USAGE, CREATE ON SCHEMA public
-#   - In DB (schema public): GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES
-#   - In DB (schema public): GRANT USAGE, SELECT ON ALL SEQUENCES
-#   - In DB (schema public): ALTER DEFAULT PRIVILEGES to grant the same on future objects
 
 set -euo pipefail
 
@@ -65,22 +42,21 @@ run_psql() {
 run_psql <<'SQL'
 -- Drop old databases
 DROP DATABASE weewx_data WITH (FORCE);
-DROP DATABASE test_weewx WITH (FORCE);
-DROP DATABASE test_weewx1 WITH (FORCE);
+DROP DATABASE weewx_test WITH (FORCE);
 
 -- Drop users if they exist
 DROP USER IF EXISTS weewx;
-DROP USER IF EXISTS weewx1;
-DROP USER IF EXISTS weewx2;
+DROP USER IF EXISTS weewx_tester;
+DROP USER IF EXISTS weewx_tester2;
 
 -- Create users with passwords
 CREATE USER weewx WITH PASSWORD 'weewx';
-CREATE USER weewx1 WITH PASSWORD 'weewx1';
-CREATE USER weewx2 WITH PASSWORD 'weewx2';
+CREATE USER weewx_tester WITH PASSWORD 'weewx_tester';
+CREATE USER weewx_tester2 WITH PASSWORD 'weewx_tester2';
 
 -- Give permissions to create a database
 ALTER USER weewx CREATEDB;
-ALTER USER weewx1 CREATEDB;
+ALTER USER weewx_tester CREATEDB;
 SQL
 
 echo "Finished setting up PostgreSQL roles and privileges."
