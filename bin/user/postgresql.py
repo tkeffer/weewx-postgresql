@@ -68,7 +68,7 @@ def _pg_guard(fn):
 
 @_pg_guard
 def connect(host='localhost', user='', password='', database_name='',
-            driver='', port=5432, autocommit=True, **kwargs):
+            driver='', port=5432, autocommit=True, real_as_double=True, **kwargs):
     """Connect to the specified PostgreSQL database."""
     conn = psycopg.connect(
         host=host or None,
@@ -76,13 +76,14 @@ def connect(host='localhost', user='', password='', database_name='',
         password=password or None,
         dbname=database_name or None,
         port=int(port) if port else None,
+        **kwargs
     )
     try:
         conn.autocommit = to_bool(autocommit)
     except Exception:
         pass
 
-    return Connection(connection=conn, database_name=database_name)
+    return Connection(connection=conn, database_name=database_name, real_as_double=real_as_double)
 
 
 @_pg_guard
@@ -118,9 +119,9 @@ class Connection(weedb.Connection):
     """A wrapper around a psycopg connection object."""
 
     @_pg_guard
-    def __init__(self, connection, database_name=''):
-        self.connection = connection
-        weedb.Connection.__init__(self, connection, database_name, 'postgresql')
+    def __init__(self, connection, database_name='', real_as_double=True):
+        super().__init__(connection, database_name, 'postgresql')
+        self.real_as_double = to_bool(real_as_double)
 
     def cursor(self):
         """Return a cursor object."""
@@ -135,7 +136,7 @@ class Connection(weedb.Connection):
 
     def list_tables(self):
         """This returns a list of the actual tables in the database. It does not use
-        metadata. An extension to the regular weedb API, in case it's useful."""
+        metadata. This is an extension to the regular weedb API, in case it's useful."""
         table_list = []
         with self.connection.cursor() as cur:
             cur.execute(
@@ -279,6 +280,7 @@ class Cursor(weedb.Cursor):
     @_pg_guard
     def __init__(self, connection):
         self._cursor = connection.connection.cursor()
+        self.real_as_double = connection.real_as_double
 
     @_pg_guard
     def execute(self, sql_string, sql_tuple=()):
@@ -307,11 +309,16 @@ class Cursor(weedb.Cursor):
         schema: The schema of the table in the form of a list of tuples:
                 [(column_name, column_type), ...]
         """
+        if self.real_as_double:
+            final_schema = [(col_name, col_type.upper().replace('REAL', 'DOUBLE PRECISION')) \
+                            for col_name, col_type in schema]
+        else:
+            final_schema = schema
         # Have my superclass create the table
-        super().create_table(table_name, schema)
+        super().create_table(table_name, final_schema)
 
         # Now insert the original mixed-case table and column names into the metadata table
-        for col_name, _ in schema:
+        for col_name, _ in final_schema:
             self.execute("INSERT INTO weewx_db__metadata (table_name, column_name) VALUES (?, ?);",
                          (table_name, col_name))
 

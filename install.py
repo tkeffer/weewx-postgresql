@@ -29,6 +29,8 @@ CONFIG = """
         user = weewx
         # If necessary, use quotes around the password to guard against parsing errors.
         password = weewx
+        # If True, use DOUBLE PRECISION for REAL columns.
+        real_as_double = true
 """
 
 postgresql_dict = configobj.ConfigObj(StringIO(CONFIG))

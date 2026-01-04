@@ -3,6 +3,7 @@ weedb interface used by SQLite and MySQL, including transaction and schema
 helpers.
 
 ## Requirements
+
 - Python 3.7 or later.
 - WeeWX 5.3 or later. Note that as of 12/24/2025, this version has not been
   released yet, so you will have to run out of the branch `development` in the
@@ -18,11 +19,10 @@ helpers.
 
 Using `psql`, create a user for WeeWX. The username and password can be whatever
 you like. You will also need to give permission for the user to create
-databases. 
+databases.
 
 In this example, we login using the client tool `psql`, then create a user named
 `weewx` with the password `weewx`. We then allow the user to create databases.
-
 
 ```shell
 # This is how you typically log in as the superuser postgres. Details may differ
@@ -34,7 +34,7 @@ ALTER USER weewx CREATEDB;
 
 ### Prerequisites
 
-Activate your WeeWX virtual environment, then install 
+Activate your WeeWX virtual environment, then install
 the [`psycopg`](https://pypi.org/project/psycopg/) (v3) package.
 
 ```aiignore
@@ -55,11 +55,19 @@ weectl extension install https://github.com/tkeffer/weewx-postgresql/archive/ref
 Take a look at your `weewx.conf` file. In particular, sections `[Databases]` and
 `[DataTypes]`. Make sure they reflect the choices you made above.
 
+#### Option `real_as_double`
+
+The WeeWX schemas use type `REAL` for floating point values. Under MySQL and
+SQLite, this resolves to an 8-byte floating point value, but under
+PostgreSQL, it resolves to a 4-byte floating point value. Setting this option
+to `true` will cause WeeWX to use `DOUBLE PRECISION` instead, which will be
+8-byte values.
+
 ### Tell WeeWX to use PostgreSQL
 
 The previous steps added the capability to use the PostgreSQL driver.
 Now you must tell WeeWX to actually use it. Look inside your `weewx.conf` for
-the `[DataBindings]` section, then the `[[wx_binding]]` subsection. Edit the 
+the `[DataBindings]` section, then the `[[wx_binding]]` subsection. Edit the
 `database` option to `archive_postgresql`. When you're done, the section should
 look something like this:
 
