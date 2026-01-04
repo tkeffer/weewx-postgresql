@@ -10,7 +10,7 @@ __pycache__
 .pytest_cache
 .coverage
 
-# Ignore the macOS turds
+# Ignore the macOS detritus
 .DS_Store
 
 # Ignore any misplaced virtual environments
