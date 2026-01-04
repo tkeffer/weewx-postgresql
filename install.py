@@ -23,12 +23,18 @@ CONFIG = """
     # Defaults for PostgreSQL databases
     [[PostgreSQL]]
         driver = user.postgresql
-        # The host where the database is located.
+        # The host where the database is located. Alternatively, delete and use environment
+        # variable PGHOST.
         host = localhost
-        # The user name for logging in to the host.
+        # The user name for logging in to the host. Alternatively, delete and use environment
+        # variable PGUSER.
         user = weewx
-        # If necessary, use quotes around the password to guard against parsing errors.
+        # If necessary, use quotes around the password to guard against parsing errors. Alternatively,
+        # delete and use environment variable PGPASSWORD.
         password = weewx
+        # The name of the database for WeeWX to use. Alternatively, delete and use environment variable
+        # PGDATABASE.
+        database_name = weewx_data
         # If True, use DOUBLE PRECISION for REAL columns.
         real_as_double = true
 """
