@@ -3,7 +3,21 @@
 #
 #    See the file LICENSE.txt for your full rights.
 #
-"""weedb driver for the PostgreSQL database"""
+"""weedb driver for the PostgreSQL database
+
+Variables:
+  host: the host name of the PostgreSQL server. Default is 'localhost'.
+  user: the user name to connect as. Default is empty string, which will cause PostgreSQL to
+    use the PGUSER environment variable.
+  password: the password to use when connecting. Default is empty string, which will cause
+    PostgreSQL to use the PGPASSWORD environment variable.
+  database_name: the name of the database to connect to. Default is empty string, which will
+    cause PostgreSQL to use the PGDATABASE environment variable.
+  port: the port number to connect to (default 5432)
+  autocommit: whether to automatically commit transactions (default True)
+  real_as_double: whether to convert REAL columns to DOUBLE PRECISION (default True)
+  maintenance_db: the name of the database to use for maintenance operations (default 'postgres')
+"""
 
 import re
 
@@ -129,14 +143,15 @@ class Connection(weedb.Connection):
 
     @_pg_guard
     def tables(self):
-        """Returns a list of tables in the database (public and user schemas)."""
+        """Returns a list of tables in the database. This version uses metadata for table names"""
         with self.connection.cursor() as cur:
             results = cur.execute("SELECT DISTINCT table_name FROM weewx_db__metadata").fetchall()
         return [row[0] for row in results]
 
     def list_tables(self):
         """This returns a list of the actual tables in the database. It does not use
-        metadata. This is an extension to the regular weedb API, in case it's useful."""
+        metadata. This is an extension to the regular weedb API that could
+        potentially be useful."""
         table_list = []
         with self.connection.cursor() as cur:
             cur.execute(
@@ -210,9 +225,9 @@ class Connection(weedb.Connection):
 
     @_pg_guard
     def columnsOf(self, table):
-        """Return a list of column names for the given table. For PostgreSQL, the list is
-        actually retrieved from a separate metadata table. This insures that the column names
-        reflect the original mixed-case names."""
+        """Return a list of column names for the given table. We actually retrive the list
+        from a separate metadata table. This insures that the column names reflect the original
+        mixed-case names."""
         column_list = []
         with self.connection.cursor() as cur:
             for column_name in cur.execute("SELECT column_name "
@@ -284,7 +299,7 @@ class Cursor(weedb.Cursor):
 
     @_pg_guard
     def execute(self, sql_string, sql_tuple=()):
-        # PostgreSQL uses %s placeholders: replace '?' with '%s'.
+        # pyscopg uses %s placeholders: replace '?' with '%s'.
         pg_string = sql_string.replace('?', '%s')
         self._cursor.execute(pg_string, tuple(sql_tuple))
         return self
