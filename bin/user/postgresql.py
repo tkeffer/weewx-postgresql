@@ -92,10 +92,7 @@ def connect(host='localhost', user='', password='', database_name='',
         port=int(port) if port else None,
         **kwargs
     )
-    try:
-        conn.autocommit = to_bool(autocommit)
-    except Exception:
-        pass
+    conn.autocommit = to_bool(autocommit)
 
     return Connection(connection=conn, database_name=database_name, real_as_double=real_as_double)
 
@@ -115,6 +112,7 @@ def create(host='localhost', user='', password='', database_name='',
     # Now connect to the new database and create the metadata table:
     with psycopg.connect(host=host or None, user=user or None, password=password or None,
                          dbname=database_name) as conn:
+        conn.autocommit = True
         conn.execute("CREATE TABLE weewx_db__metadata (table_name TEXT, column_name TEXT);")
 
 
@@ -143,15 +141,17 @@ class Connection(weedb.Connection):
 
     @_pg_guard
     def tables(self):
-        """Returns a list of tables in the database. This version uses metadata for table names"""
+        """Returns a list of tables in the database. This version retrieves mixed-case
+        table names from metadata"""
         with self.connection.cursor() as cur:
             results = cur.execute("SELECT DISTINCT table_name FROM weewx_db__metadata").fetchall()
         return [row[0] for row in results]
 
     def list_tables(self):
-        """This returns a list of the actual tables in the database. It does not use
-        metadata. This is an extension to the regular weedb API that could
-        potentially be useful."""
+        """This version returns a list of the actual tables in the database. It
+         does not use metadata. This is an extension to the regular weedb API
+         that could potentially be useful."""
+
         table_list = []
         with self.connection.cursor() as cur:
             cur.execute(
@@ -245,7 +245,7 @@ class Connection(weedb.Connection):
         # PostgreSQL has SHOW for some variables
         with self.connection.cursor() as cur:
             try:
-                cur.execute("SHOW %s;" % var_name)
+                cur.execute(f"SHOW {var_name};")
             except PGDatabaseError:
                 return None
             row = cur.fetchone()
