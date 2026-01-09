@@ -115,7 +115,7 @@ def create(host='localhost', user='', password='', database_name='',
     # Now connect to the new database and create the metadata table:
     with psycopg.connect(host=host or None, user=user or None, password=password or None,
                          dbname=database_name) as conn:
-        conn.execute(f"CREATE TABLE weewx_db__metadata (table_name TEXT, column_name TEXT);")
+        conn.execute("CREATE TABLE weewx_db__metadata (table_name TEXT, column_name TEXT);")
 
 
 @_pg_guard
@@ -311,10 +311,6 @@ class Cursor(weedb.Cursor):
     def fetchone(self):
         return self._cursor.fetchone()
 
-    def drop_columns(self, table, column_names):
-        for column_name in column_names:
-            self.execute("ALTER TABLE %s DROP COLUMN IF EXISTS %s;" % (table, column_name))
-
     def create_table(self, table_name, schema):
         """Create a new table with the specified schema.
 
@@ -333,9 +329,56 @@ class Cursor(weedb.Cursor):
         super().create_table(table_name, final_schema)
 
         # Now insert the original mixed-case table and column names into the metadata table
-        for col_name, _ in final_schema:
-            self.execute("INSERT INTO weewx_db__metadata (table_name, column_name) VALUES (?, ?);",
-                         (table_name, col_name))
+        for column_name, _ in final_schema:
+            self.execute("INSERT INTO weewx_db__metadata (table_name, column_name) "
+                         "VALUES (%s, %s);",
+                         (table_name, column_name))
+
+    def drop_table(self, table_name):
+        """Drop an existing table. Specialized to handle metadata cleanup."""
+        # Have my superclass drop the table
+        super().drop_table(table_name)
+        # Then delete the metadata
+        self.execute("DELETE FROM weewx_db__metadata WHERE table_name = %s;", (table_name,))
+
+    def add_column(self, table_name, column_name, column_type):
+        """Add a single new column to an existing table."""
+
+        # Have my superclass add the column to the table
+        super().add_column(table_name, column_name, column_type)
+        # Then add it to the metadata table
+        self.execute("INSERT INTO weewx_db__metadata (table_name, column_name) "
+                     "VALUES (%s, %s);",
+                     (table_name, column_name))
+
+    def rename_column(self, table_name, old_column_name, new_column_name):
+        """Rename a column in the main archive table."""
+        # Have my superclass rename the column in the main table
+        super().rename_column(table_name, old_column_name, new_column_name)
+        # Then update the metadata table
+        self.execute("UPDATE weewx_db__metadata SET column_name = %s "
+                     "WHERE table_name = %s AND column_name = %s;",
+                     (new_column_name, table_name, old_column_name))
+
+    def drop_columns(self, table, column_names):
+        """Drop one or more columns from an existing table.
+
+        PostgreSQL supports dropping multiple columns in one command.
+        """
+        if not column_names:
+            return
+
+        # First drop the columns from the main table
+        sql_stmt = f'ALTER TABLE {table} DROP COLUMN ' + ', DROP COLUMN '.join(column_names)
+        self.execute(sql_stmt)
+
+        # Now delete the metadata. Create a string like "%s, %s" based on the length of column_names
+        placeholders = ', '.join(['%s'] * len(column_names))
+        sql_stmt = (f"DELETE FROM weewx_db__metadata "
+                    f"WHERE table_name = %s AND column_name IN ({placeholders});")
+
+        # Pass the table name followed by all the column names
+        self.execute(sql_stmt, (table, *column_names))
 
     def close(self):
         try:
