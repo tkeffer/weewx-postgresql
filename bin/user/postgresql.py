@@ -130,7 +130,6 @@ def drop(host='localhost', user='', password='', database_name='',
 class Connection(weedb.Connection):
     """A wrapper around a psycopg connection object."""
 
-    @_pg_guard
     def __init__(self, connection, database_name='', real_as_double=True):
         super().__init__(connection, database_name, 'postgresql')
         self.real_as_double = to_bool(real_as_double)
@@ -147,6 +146,7 @@ class Connection(weedb.Connection):
             results = cur.execute("SELECT DISTINCT table_name FROM weewx_db__metadata").fetchall()
         return [row[0] for row in results]
 
+    @_pg_guard
     def list_tables(self):
         """This version returns a list of the actual tables in the database. It
          does not use metadata. This is an extension to the regular weedb API
@@ -294,6 +294,7 @@ class Cursor(weedb.Cursor):
 
     @_pg_guard
     def __init__(self, connection):
+        # This will be a psycopg cursor object
         self._cursor = connection.connection.cursor()
         self.real_as_double = connection.real_as_double
 
@@ -308,6 +309,7 @@ class Cursor(weedb.Cursor):
     def rowcount(self):
         return getattr(self._cursor, 'rowcount', -1)
 
+    @_pg_guard
     def fetchone(self):
         return self._cursor.fetchone()
 
@@ -384,7 +386,8 @@ class Cursor(weedb.Cursor):
         try:
             self._cursor.close()
             del self._cursor
-        except AttributeError:
+        # Swallow any network exceptions gracefully
+        except (AttributeError, PGInterfaceError, PGDatabaseError):
             pass
 
     def __iter__(self):
