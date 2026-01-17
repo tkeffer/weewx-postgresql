@@ -28,7 +28,11 @@ from psycopg import InterfaceError as PGInterfaceError
 from psycopg.types.numeric import FloatLoader
 
 import weedb
-from weeutil.weeutil import to_bool
+from weeutil.weeutil import to_bool, version_compare
+import weewx
+
+if version_compare(weewx.__version__, '5.3.0') < 0:
+    raise ImportError("WeeWX version 5.3.0 or higher is required for the PostgreSQL driver")
 
 # This tells psycopg3 to return float instead of decimal.Decimal.
 # OID 1700 is the standard internal ID for NUMERIC in PostgreSQL
