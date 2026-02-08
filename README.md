@@ -1,11 +1,13 @@
-Adds PostgreSQL support via new driver `user.postgresql`. It follows the same
-weedb interface used by SQLite and MySQL, including transaction and schema
-helpers.
+Adds PostgreSQL support via new database driver `user.postgresql`. It follows
+the same weedb interface used by SQLite and MySQL, including transaction and 
+schema helpers.
+
+At this point, it should be considered a "beta" version.
 
 ## Requirements
 
 - Python 3.7 or later.
-- WeeWX 5.3 or later. Note that as of 12/24/2025, this version has not been
+- WeeWX 5.3 or later. Note that as of 08-Feb-2026, this version has not been
   released yet, so you will have to run out of the branch `development` in the
   WeeWX repository. See the WeeWX documentation on
   [running from a git repository](https://www.weewx.com/docs/5.2/quickstarts/git/#install-pre-requisites)
