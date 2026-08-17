@@ -48,7 +48,7 @@ def loader():
 class PostgreSQLInstaller(ExtensionInstaller):
     def __init__(self):
         super(PostgreSQLInstaller, self).__init__(
-            version="1.0",
+            version="1.0.1",
             name='PostgreSQL',
             description='WeeWX driver for the PostgreSQL database',
             author="Thomas Keffer",

@@ -31,6 +31,8 @@ import weedb
 from weeutil.weeutil import to_bool, version_compare
 import weewx
 
+VERSION = "1.0.1"
+
 if version_compare(weewx.__version__, '5.3.0') < 0:
     raise ImportError("WeeWX version 5.3.0 or higher is required for the PostgreSQL driver")
 
@@ -86,7 +88,7 @@ def _pg_guard(fn):
 
 @_pg_guard
 def connect(host='localhost', user='', password='', database_name='',
-            driver='', port=5432, autocommit=True, real_as_double=True, **kwargs):
+            _driver='', port=5432, autocommit=True, real_as_double=True, **kwargs):
     """Connect to the specified PostgreSQL database."""
     conn = psycopg.connect(
         host=host or None,
@@ -103,7 +105,7 @@ def connect(host='localhost', user='', password='', database_name='',
 
 @_pg_guard
 def create(host='localhost', user='', password='', database_name='',
-           driver='', port=5432, **kwargs):
+           _driver='', port=5432, **kwargs):
     """Create the specified database. If it already exists, raise DatabaseExistsError."""
 
     # Open up a connection to the "maintenance" database (usually 'postgres'), then create the
@@ -122,7 +124,7 @@ def create(host='localhost', user='', password='', database_name='',
 
 @_pg_guard
 def drop(host='localhost', user='', password='', database_name='',
-         driver='', port=5432, **kwargs):
+         _driver='', port=5432, **kwargs):
     """Drop (delete) the specified database."""
     maint_db = kwargs.get('maintenance_db', 'postgres')
     with psycopg.connect(host=host or None, user=user or None, password=password or None,
@@ -224,7 +226,7 @@ class Connection(weedb.Connection):
                 can_be_null = True if (str(row[2]).upper() == 'YES') else False
                 default_val = row[3]
                 is_primary = colname in pk_cols
-                yield (i, colname, coltype, can_be_null, default_val, is_primary)
+                yield i, colname, coltype, can_be_null, default_val, is_primary
                 i += 1
 
     @_pg_guard
@@ -254,6 +256,7 @@ class Connection(weedb.Connection):
                 return None
             row = cur.fetchone()
             return None if row is None else (var_name, row[0])
+        return None
 
     group_defs = {
         #        'day': "GROUP BY date_trunc('day', to_timestamp(dateTime)) ",
@@ -298,6 +301,12 @@ class Cursor(weedb.Cursor):
 
     @_pg_guard
     def __init__(self, connection):
+        """
+        Create a Cursor object from a weedb connection.
+
+        Args:
+            connection (weedb.Connection): A weedb connection object
+        """
         # This will be a psycopg cursor object
         self._cursor = connection.connection.cursor()
         self.real_as_double = connection.real_as_double

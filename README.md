@@ -1,17 +1,13 @@
 Adds PostgreSQL support via new database driver `user.postgresql`. It follows
-the same weedb interface used by SQLite and MySQL, including transaction and 
-schema helpers.
+the same `weedb` interface used by the SQLite and MySQL database drivers,
+including transaction and schema helpers.
 
 At this point, it should be considered a "beta" version.
 
 ## Requirements
 
 - Python 3.7 or later.
-- WeeWX 5.3 or later. Note that as of 08-Feb-2026, this version has not been
-  released yet, so you will have to run out of the branch `development` in the
-  WeeWX repository. See the WeeWX documentation on
-  [running from a git repository](https://www.weewx.com/docs/5.2/quickstarts/git/#install-pre-requisites)
-  for more information.
+- WeeWX 5.3 or later.
 - PostgreSQL to which you have admin privileges. Tested on PostgreSQL v16.
 - `psycopg` v3. This is the client library for PostgreSQL.
 
@@ -54,22 +50,21 @@ weectl extension install https://github.com/tkeffer/weewx-postgresql/archive/ref
 
 ### Check settings in weewx.conf
 
-Take a look at your `weewx.conf` file. In particular, sections `[Databases]` and
+Take a look at your `weewx.conf` file, in particular, sections `[Databases]` and
 `[DataTypes]`. Make sure they reflect the choices you made above.
 
 #### Option `real_as_double`
 
 The WeeWX schemas use type `REAL` for floating point values. Under MySQL and
-SQLite, this resolves to an 8-byte floating point value, but under
-PostgreSQL, it resolves to a 4-byte floating point value. Setting this option
-to `true` will cause WeeWX to use `DOUBLE PRECISION` instead, which will be
-8-byte values.
+SQLite, this resolves to an 8-byte floating point value, but under PostgreSQL,
+it resolves to a 4-byte floating point value. Setting this option to `true` will
+cause WeeWX to use `DOUBLE PRECISION` instead, which will result in 8-byte values.
 
 ### Tell WeeWX to use PostgreSQL
 
-The previous steps added the capability to use the PostgreSQL driver.
-Now you must tell WeeWX to actually use it. Look inside your `weewx.conf` for
-the `[DataBindings]` section, then the `[[wx_binding]]` subsection. Edit the
+The previous steps added the capability to use the PostgreSQL driver. Now you
+must tell WeeWX to actually use it. Look inside your `weewx.conf` for the
+`[DataBindings]` section, then the `[[wx_binding]]` subsection. Edit the
 `database` option to `archive_postgresql`. When you're done, the section should
 look something like this:
 
